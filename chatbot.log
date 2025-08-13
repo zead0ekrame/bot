@@ -1,0 +1,25 @@
+2025-08-13 00:58:13,524 - main - INFO - 🆕 محادثة جديدة: ziad_20250813_005813
+2025-08-13 00:58:35,336 - main - INFO - 💬 رسالة من ziad: ?????? ????...
+2025-08-13 00:58:39,859 - main - INFO - 📊 Usage - Input: 40, Output: 176
+2025-08-13 00:58:39,860 - main - INFO - ✅ رد تم في 4.52s: مرحبًا! يبدو أن رسالتك تحتوي على علامات استفهام فقط، ولم تُذكر سؤالك بشكل واضح. هل يمكنك إعادة صياغة...
+2025-08-13 03:12:36,334 - main - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 03:16:59,792 - main - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 03:32:31,237 - __main__ - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 03:37:40,992 - main - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 03:37:44,488 - httpx - INFO - HTTP Request: GET https://openrouter.ai/api/v1/models "HTTP/1.1 200 OK"
+2025-08-13 03:37:45,020 - httpx - INFO - HTTP Request: GET https://openrouter.ai/api/v1/models "HTTP/1.1 200 OK"
+2025-08-13 03:37:45,070 - httpx - INFO - HTTP Request: GET https://openrouter.ai/api/v1/models "HTTP/1.1 200 OK"
+2025-08-13 03:37:45,149 - httpx - INFO - HTTP Request: GET https://openrouter.ai/api/v1/models "HTTP/1.1 200 OK"
+2025-08-13 03:49:18,896 - httpx - INFO - HTTP Request: GET https://openrouter.ai/api/v1/models "HTTP/1.1 200 OK"
+2025-08-13 03:50:17,504 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-13 03:52:37,653 - __main__ - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 03:53:55,978 - __main__ - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 03:56:42,854 - __main__ - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 04:00:32,775 - __main__ - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 04:02:02,554 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-13 04:04:21,284 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-13 04:04:23,637 - httpx - INFO - HTTP Request: POST https://graph.facebook.com/v18.0/me/messages?access_token= "HTTP/1.1 400 Bad Request"
+2025-08-13 04:04:26,967 - httpx - INFO - HTTP Request: POST https://openrouter.ai/api/v1/chat/completions "HTTP/1.1 200 OK"
+2025-08-13 04:04:30,114 - httpx - INFO - HTTP Request: POST https://graph.facebook.com/v18.0/me/messages?access_token= "HTTP/1.1 400 Bad Request"
+2025-08-13 06:00:00,802 - main - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة
+2025-08-13 09:56:34,374 - __main__ - WARNING - ⚠️ Redis غير متاح، استخدام الذاكرة المؤقتة

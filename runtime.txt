@@ -1,0 +1,6 @@
+# داخل مجلد المشروع
+Set-Content -NoNewline -Path runtime.txt -Value "python-3.11.9"
+
+git add runtime.txt
+git commit -m "Pin Python to 3.11.9 for Render"
+git push origin master   # أو main لو خدمتك على main

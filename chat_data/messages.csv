@@ -1,0 +1,1 @@
+message_id,conversation_id,user_id,platform,timestamp,message_type,content,direction,response_time_ms,tokens_used,sentiment_score,keywords,user_engagement

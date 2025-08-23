@@ -16,7 +16,7 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import FastAPI, Request, HTTPException, Query
-from fastapi.responses import Response, ORJSONResponse
+from fastapi.responses import Response, ORJSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 
@@ -82,14 +82,7 @@ async def chatbot_exception_handler(request: Request, exc: ChatbotException):
 
 @app.get("/")
 async def root():
-    return {
-        "message": "🤖 مرحباً بك في الشات بوت العربي!", 
-        "version": "3.1.0",
-        "webhooks": {
-            "messenger": "/webhook",
-            "whatsapp": "/webhook"
-        }
-    }
+    return PlainTextResponse(content="🤖 مرحباً بك في الشات بوت العربي! v3.1.0\nWebhooks: /webhook")
 
 @app.post("/test-chat")
 async def test_chat(request: Request):
@@ -98,7 +91,7 @@ async def test_chat(request: Request):
         body = await request.json()
         message = body.get("message", "")
         if not message:
-            return {"error": "الرسالة مطلوبة"}
+            return PlainTextResponse(content="الرسالة مطلوبة")
         
         # توليد الرد
         reply = await chat_service.llm.generate_response([
@@ -106,10 +99,10 @@ async def test_chat(request: Request):
             {"role": "user", "content": message}
         ])
         
-        return {"reply": reply, "message": message}
+        return PlainTextResponse(content=f"الرد: {reply}\nالرسالة: {message}")
     except Exception as e:
         logger.exception(f"خطأ في test_chat: {e}")
-        return {"error": str(e)}
+        return PlainTextResponse(content=f"خطأ: {str(e)}")
 
 @app.get("/health")
 async def health_check(fast: bool = False):
@@ -118,7 +111,7 @@ async def health_check(fast: bool = False):
     - fast=false → يحاول يتأكد من اتصال OpenRouter.
     """
     if fast:
-        return {"status": "ok-local", "storage": "redis" if chat_service.storage.use_redis else "memory"}
+        return PlainTextResponse(content=f"ok-local\nstorage: {'redis' if chat_service.storage.use_redis else 'memory'}")
 
     try:
         import httpx
@@ -130,13 +123,43 @@ async def health_check(fast: bool = False):
                 timeout=5.0,
             )
             api_ok = r.status_code == 200
-            return {"status": "healthy" if api_ok else "unhealthy", "api_status": r.status_code}
+            return PlainTextResponse(content="healthy" if api_ok else "unhealthy")
     except Exception as e:
-        return {"status": "unhealthy", "error": str(e)}
+        return PlainTextResponse(content="unhealthy")
 
 
 
 
+
+
+
+# ---------------------------------------------------------------------------
+# User Data Deletion (Meta Requirement)
+# ---------------------------------------------------------------------------
+@app.post("/user-data-deletion")
+async def user_data_deletion():
+    """حذف بيانات المستخدم - مطلوب من ميتا"""
+    confirmation_code = "delete_123456"
+
+    # ميتا ساعات بترفض JSON عادي، علشان كده نرجع نص حرفياً
+    response_text = (
+        f"{{ url: 'https://ekramy-ai.online/delete/{confirmation_code}', "
+        f"confirmation_code: '{confirmation_code}' }}"
+    )
+
+    return PlainTextResponse(content=response_text, media_type="application/json")
+
+@app.post("/user-data-deletion-json")
+async def user_data_deletion_json():
+    """حذف بيانات المستخدم - نسخة JSON عادي (للاختبار)"""
+    confirmation_code = "delete_123456"
+    
+    # JSON عادي - جرب لو الأول مش شغل
+    response_text = (
+        f'{{"url":"https://ekramy-ai.online/delete/{confirmation_code}","confirmation_code":"{confirmation_code}"}}'
+    )
+    
+    return PlainTextResponse(content=response_text, media_type="application/json")
 
 # ---------------------------------------------------------------------------
 # Messenger Webhook
@@ -149,7 +172,7 @@ async def verify_webhook(
 ):
     """تحقق من webhook Facebook"""
     if hub_mode == "subscribe" and hub_verify_token == settings.facebook_verify_token:
-        return Response(content=hub_challenge, media_type="text/plain")
+        return PlainTextResponse(content=hub_challenge)
     raise HTTPException(status_code=403, detail="Invalid token")
 
 @app.post("/webhook")
@@ -161,7 +184,7 @@ async def messenger_webhook(request: Request):
         object_type = body.get("object")
         if not object_type:
             logger.warning("Webhook ignored: missing object type")
-            return {"status": "ignored"}
+            return PlainTextResponse(content="ignored")
 
         # فرع Messenger (object == 'page')
         if object_type == "page":
@@ -181,7 +204,7 @@ async def messenger_webhook(request: Request):
                     text = (message.get("text") or "").strip()
                     if text:
                         asyncio.create_task(chat_service.process_message("messenger", sender, text))
-            return {"status": "ok"}
+            return PlainTextResponse(content="ok")
 
         # فرع WhatsApp Cloud API (object == 'whatsapp_business_account')
         if object_type == "whatsapp_business_account":
@@ -203,13 +226,13 @@ async def messenger_webhook(request: Request):
                             chat_service.storage.mark_message_seen(message_id)
 
                         asyncio.create_task(chat_service.process_message("whatsapp", sender, text))
-            return {"status": "ok"}
+            return PlainTextResponse(content="ok")
 
         logger.warning(f"Webhook ignored: unsupported object '{object_type}'")
-        return {"status": "ignored"}
+        return PlainTextResponse(content="ignored")
     except Exception as e:
         logger.exception(f"خطأ في webhook: {e}")
-        return {"status": "error", "message": str(e)}
+        return PlainTextResponse(content="error")
 
 # ---------------------------------------------------------------------------
 # باقي الكود تم تبسيطه عبر استخدام الخدمات في services.py

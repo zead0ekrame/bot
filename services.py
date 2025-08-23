@@ -107,14 +107,7 @@ class MetricsService:
             model_avg = (self.model_latency_ms_sum / self.model_requests_total) if self.model_requests_total else 0.0
             bot_avg = (self.bot_latency_ms_sum / self.bot_requests_total) if self.bot_requests_total else 0.0
 
-            return {
-                "server_requests_total": self.server_requests_total,
-                "server_latency_ms_avg": round(server_avg, 2),
-                "model_requests_total": self.model_requests_total,
-                "model_latency_ms_avg": round(model_avg, 2),
-                "bot_requests_total": self.bot_requests_total,
-                "bot_latency_ms_avg": round(bot_avg, 2),
-            }
+            return f"server_requests_total: {self.server_requests_total}\nserver_latency_ms_avg: {round(server_avg, 2)}\nmodel_requests_total: {self.model_requests_total}\nmodel_latency_ms_avg: {round(model_avg, 2)}\nbot_requests_total: {self.bot_requests_total}\nbot_latency_ms_avg: {round(bot_avg, 2)}"
 
 # ---------------------------------------------------------------------------
 # Storage Service
@@ -356,6 +349,58 @@ class PlatformService:
             raise ConversationException(f"خطأ في إرسال الرسالة: {str(e)}")
     
     @staticmethod
+    @traceable(name="fb_send_message_with_quick_replies")
+    async def send_messenger_message_with_quick_replies(recipient: str, text: str):
+        """إرسال رسالة لماسنجر مع Quick Replies"""
+        if not settings.facebook_page_access_token:
+            raise ConversationException("Facebook Page Access Token غير متوفر")
+        
+        url = f"https://graph.facebook.com/{settings.fb_graph_version}/me/messages"
+        params = {"access_token": settings.facebook_page_access_token}
+        
+        # Quick Replies
+        quick_replies = [
+            {
+                "content_type": "text",
+                "title": "🛍️ المنتجات",
+                "payload": "PRODUCTS"
+            },
+            {
+                "content_type": "text",
+                "title": "💰 الأسعار",
+                "payload": "PRICES"
+            },
+            {
+                "content_type": "text",
+                "title": "❓ مساعدة",
+                "payload": "HELP"
+            },
+            {
+                "content_type": "text",
+                "title": "🔄 توقف",
+                "payload": "STOP"
+            }
+        ]
+        
+        payload = {
+            "recipient": {"id": recipient},
+            "message": {
+                "text": text,
+                "quick_replies": quick_replies
+            }
+        }
+        
+        try:
+            client = await get_http_client()
+            r = await client.post(url, json=payload, params=params, timeout=20.0)
+            if r.status_code >= 400:
+                logger.error(f"[FB send with QR] {r.status_code} {r.text}")
+                raise ConversationException(f"فشل في إرسال الرسالة: {r.text}")
+        except Exception as e:
+            logger.error(f"خطأ في إرسال رسالة ماسنجر مع Quick Replies: {e}")
+            raise ConversationException(f"خطأ في إرسال الرسالة: {str(e)}")
+    
+    @staticmethod
     @traceable(name="wa_send_message")
     async def send_whatsapp_message(recipient: str, text: str):
         """إرسال رسالة لواتساب"""
@@ -434,8 +479,16 @@ class ChatService:
         except Exception as e:
             logger.warning(f"RAG context skipped due to error: {e}")
 
-        # توليد الرد
-        reply = await self.llm.generate_response(messages_for_llm)
+        # معالجة الأوامر الأساسية
+        if text.lower().strip() in ['help', 'مساعدة', 'مساعده', '؟', '؟؟']:
+            reply = self._get_help_message()
+        elif text.lower().strip() in ['stop', 'توقف', 'إيقاف', 'ايقاف']:
+            reply = self._get_stop_message()
+            # إيقاف المحادثة
+            self.storage.save_conversation(conv_id, [{"role": "system", "content": settings.system_prompt}])
+        else:
+            # توليد الرد من الذكاء الاصطناعي
+            reply = await self.llm.generate_response(messages_for_llm)
         
         # إضافة رد المساعد
         messages.append({"role": "assistant", "content": reply})
@@ -466,8 +519,8 @@ class ChatService:
         # تحديث ملف المستخدم
         self._update_user_profile(platform, user_id, text, reply)
         
-        # إرسال الرد
-        await self.send_reply(platform, user_id, reply)
+        # إرسال الرد مع Quick Replies
+        await self.send_reply_with_quick_replies(platform, user_id, reply)
         t1 = perf_counter()
         metrics.record_bot_latency_ms((t1 - t0) * 1000.0)
     
@@ -492,6 +545,28 @@ class ChatService:
             logger.exception(f"خطأ في إرسال الرد: {e}")
             raise ConversationException(f"فشل في إرسال الرد: {str(e)}")
     
+    async def send_reply_with_quick_replies(self, platform: str, recipient: str, text: str):
+        """إرسال رد مع Quick Replies"""
+        try:
+            if platform == "messenger":
+                # إظهار مؤشرات الكتابة
+                await self.platform.send_messenger_action(recipient, "mark_seen")
+                await self.platform.send_messenger_action(recipient, "typing_on")
+                
+                # إرسال الرسالة مع Quick Replies
+                await self.platform.send_messenger_message_with_quick_replies(recipient, text)
+                
+                # إيقاف مؤشر الكتابة
+                await self.platform.send_messenger_action(recipient, "typing_off")
+                
+            elif platform == "whatsapp":
+                await self.platform.send_whatsapp_message(recipient, text)
+                
+        except Exception as e:
+            logger.exception(f"خطأ في إرسال الرد مع Quick Replies: {e}")
+            # fallback للطريقة العادية
+            await self.send_reply(platform, recipient, text)
+    
     def create_new_conversation(self, user_id: str) -> str:
         """إنشاء محادثة جديدة"""
         import time
@@ -500,6 +575,28 @@ class ChatService:
         conversation_id = f"{user_id}_{int(time.time())}_{os.urandom(4).hex()}"
         self.storage.save_conversation(conversation_id, [{"role": "system", "content": settings.system_prompt}])
         return conversation_id
+
+    def _get_help_message(self) -> str:
+        """رسالة المساعدة"""
+        return """🤖 مرحباً! أنا مساعدك في المنتجات الزراعية
+
+📋 الأوامر المتاحة:
+• help / مساعدة - عرض هذه الرسالة
+• stop / توقف - إيقاف المحادثة وبدء جديدة
+
+🛍️ يمكنني مساعدتك في:
+• البحث عن المنتجات
+• معلومات الأسعار
+• طلبات الشراء
+• الاستفسارات العامة
+
+💬 اكتب رسالتك وسأرد عليك فوراً!"""
+
+    def _get_stop_message(self) -> str:
+        """رسالة إيقاف المحادثة"""
+        return """🔄 تم إيقاف المحادثة وبدء محادثة جديدة
+
+يمكنك الآن البدء من جديد! اكتب رسالتك وسأرد عليك."""
 
     def _extract_keywords(self, text: str) -> str:
         """استخراج كلمات مفتاحية بسيطة"""

@@ -21,6 +21,9 @@ cp env.example .env
 
 # تعديل المتغيرات في .env
 # OPENROUTER_API_KEY=sk-or-...
+# FACEBOOK_VERIFY_TOKEN=123456789
+# FACEBOOK_PAGE_ACCESS_TOKEN=your_token_here
+# FB_GRAPH_VERSION=v18.0
 # OPENAI_API_KEY=sk-... (اختياري للـ RAG)
 ```
 

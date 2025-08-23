@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     # OpenRouter Configuration
     openrouter_api_key: str = Field(..., env="OPENROUTER_API_KEY")
     openrouter_model: str = Field("qwen/qwen3-30b-a3b:free", env="OPENROUTER_MODEL")
-    llm_temperature: float = Field(0.4, env="LLM_TEMPERATURE")
-    llm_max_tokens: int = Field(350, env="LLM_MAX_TOKENS")
+    llm_temperature: float = Field(0.7, env="LLM_TEMPERATURE")
+    llm_max_tokens: int = Field(800, env="LLM_MAX_TOKENS")
     system_prompt: str = Field(
         "أنت موظف مبيعات وخدمة عملاء محترف لصفحة منتجات زراعية.\n"
         "- رحّب بالعميل بأدب، واسأله عن هدفه (شراء/استفسار/متابعة طلب).\n"
